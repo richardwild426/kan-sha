@@ -11,3 +11,4 @@ ep.json
 
 # NSH build output
 nsh/.nsh/
+nsh/dist/
