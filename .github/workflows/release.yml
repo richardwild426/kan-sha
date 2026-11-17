@@ -76,7 +76,7 @@ jobs:
           NSH_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           BUILD_NUMBER: ${{ github.run_number }}
         run: |
-          ./package-android.sh --trim "dist/看啥-${APP_VERSION}-arm64.apk"
+          ./package-android.sh --trim "dist/kansha-${APP_VERSION}-arm64.apk"
           # apksigner 顺手生成 .idsig（v4 签名），Release 里不需要
           rm -f dist/*.idsig
           ls -lh dist/
@@ -85,8 +85,8 @@ jobs:
         working-directory: nsh
         run: |
           BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
-          "$BT/apksigner" verify --print-certs "dist/看啥-${APP_VERSION}-arm64.apk" | head -4
-          "$BT/aapt2" dump badging "dist/看啥-${APP_VERSION}-arm64.apk" | grep -E "^(package|application-label)"
+          "$BT/apksigner" verify --print-certs "dist/kansha-${APP_VERSION}-arm64.apk" | head -4
+          "$BT/aapt2" dump badging "dist/kansha-${APP_VERSION}-arm64.apk" | grep -E "^(package|application-label)"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -109,7 +109,7 @@ jobs:
 
             | 平台 | 文件 | 说明 |
             |---|---|---|
-            | Android | `看啥-${{ steps.v.outputs.version }}-arm64.apk` | Android 8+，arm64 设备 |
+            | Android | `kansha-${{ steps.v.outputs.version }}-arm64.apk` | Android 8+，arm64 设备 |
 
             装之前先允许「安装未知来源的应用」。
 
