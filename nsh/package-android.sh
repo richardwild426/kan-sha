@@ -46,19 +46,13 @@ raw=$(ls "$tmp/raw"/*.apk)
 mkdir "$tmp/x"
 (cd "$tmp/x" && unzip -q "$raw")
 
-# 裁剪要 .nsh/rust（nsh 生成的 crate 骨架）。0.5.1 及更早不写这个目录，
-# 但带裁剪逻辑的构建（main / nightly）会在 package 时生成它，所以没有就
-# 先用同一个 nsh 正常打一次包，它顺手把骨架写下来。
-if [ "$TRIM" = 1 ] && [ ! -d .nsh/rust/android ]; then
-  echo "→ 先打一次包，让 nsh 生成 .nsh/rust 骨架"
-  if ! nsh package App.tsx --target android --abi arm64-v8a -o "$tmp/gen" >"$tmp/gen.log" 2>&1; then
-    cat "$tmp/gen.log"; exit 1
-  fi
-fi
-
-if [ "$TRIM" = 1 ] && [ ! -d .nsh/rust/android ]; then
-  echo "  注意：这个 NSH 版本不生成 .nsh/rust，跳过裁剪（得到预编译运行时版）"
-  echo "        13 MB 需要带裁剪逻辑的 nsh（main 分支 / nightly）"
+# 裁剪要一个 cargo 工作区（nsh 生成的东西）。0.5.1 不写 .nsh/rust，所以
+# runtime/ 里存了一份（由 nsh 0.5.1 生成，pin =0.5.0 的 crate），没有就用它。
+if [ "$TRIM" = 1 ] && [ ! -d .nsh/rust/android ] && [ -d runtime/android ]; then
+  echo "→ 用 runtime/ 里的骨架建工作区"
+  mkdir -p .nsh/rust
+  cp -R runtime/android .nsh/rust/android
+  cp runtime/workspace.toml .nsh/rust/Cargo.toml
 fi
 
 # 硬约束：classes.dex 读 libnsh.so 的字符串表，两边协议必须对得上。

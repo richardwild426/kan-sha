@@ -35,20 +35,21 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      # 用正式版：classes.dex 和 libnsh.so 必须来自同一个 nsh。
-      # nightly 会生成 .nsh/rust 让脚本去 crates.io 编译 .so，但那份 .so 和
-      # nightly 自带的 dex 桥接协议对不上，装上去一启动就
-      # ArrayIndexOutOfBoundsException（Mounter.string）。稳定版没这个问题，
-      # 代价是拿不到裁剪版（0.5.1 不生成 .nsh/rust），出 21 MB。
+      # 必须用正式版。nightly 的 classes.dex 用新协议，而 crates.io 上的
+      # crate 还是旧的，编出来的 .so 与之不匹配，一启动就
+      # ArrayIndexOutOfBounds（Mounter.string）。正式版没这个问题。
       - name: 装 NSH
         run: |
           curl -fsSL https://nsh.dev/install.sh | sh
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           "$HOME/.nsh/bin/nsh" --version
 
-      - name: 检查 Android 工具
+      # 裁剪版运行时是 cargo 交叉编译出来的：要 Rust 的 android target 和 NDK
+      - name: 装编译工具链
         run: |
-          echo "SDK: ${ANDROID_HOME:-未设置}"
+          rustup target add aarch64-linux-android
+          echo "ANDROID_NDK_HOME=$ANDROID_NDK_LATEST_HOME" >> "$GITHUB_ENV"
+          echo "NDK: $ANDROID_NDK_LATEST_HOME"
           echo "build-tools: $(ls -d "$ANDROID_HOME"/build-tools/* | tail -1)"
 
       # 测试跑不过不该挡住发版：headless 依赖很少，但 CI 环境差异万一出问题，
@@ -65,8 +66,8 @@ jobs:
           mkdir -p nsh/.signing
           printf '%s' "$KEYSTORE_B64" | base64 -d > nsh/.signing/release.keystore
 
-      # 21 MB：只打 arm64-v8a + .so 用 deflate 压进包。
-      # 更小的裁剪版要靠 NSH 正式版支持现场编译运行时（见 README）。
+      # 13 MB：只打 arm64-v8a、.so deflate、再现场编译一个只含 JS 引擎的运行时。
+      # 骨架在 nsh/runtime/，所以干净 checkout 也能裁。编译失败自动退回 21 MB。
       - name: 打包
         working-directory: nsh
         env:
@@ -75,7 +76,7 @@ jobs:
           NSH_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           BUILD_NUMBER: ${{ github.run_number }}
         run: |
-          ./package-android.sh "dist/kansha-${APP_VERSION}-arm64.apk"
+          ./package-android.sh --trim "dist/kansha-${APP_VERSION}-arm64.apk"
           # apksigner 顺手生成 .idsig（v4 签名），Release 里不需要
           rm -f dist/*.idsig
           ls -lh dist/
