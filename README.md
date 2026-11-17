@@ -7,22 +7,21 @@
 ## 结构
 
 ```
-public/                # 网页版（线上跑的这份）
-  index.html           # 全部内容：HTML + CSS + JS + 数据，单文件
-  assets/covers/*.webp # 33 张竖版海报，480×640
-  assets/bgs/*.webp    # 3 张横版大图（只有这 3 部有）
-wrangler.toml          # Cloudflare Workers + 静态资源
-nsh/                   # Native Shell 版，同一套界面跑 web / Android
+nsh/                   # 源码：Native Shell，一份代码出 web / Android
   App.tsx              # 全部界面与逻辑
+  App.test.tsx         # headless 测试
   movies.json          # 33 部影片数据（从 movies_detail.json 生成）
-  assets/              # 与 public/assets 相同的图
+  assets/              # 33 张海报 + 3 张横图（webp）
   nsh.json             # 应用 id、名称、外观
+public/                # 部署用：nsh package --target web 的产物，不要手改
+legacy/                # 最早那版手写单文件网页，留档（已不在线上）
+wrangler.toml          # Cloudflare Workers + 静态资源
 *.py                   # 一次性数据采集脚本（解析置顶评论、解析短链、拉 PGC 元数据）
 movies_detail.json     # 归一化后的 33 部影片元数据
 links.json             # b23.tv 短链 → bangumi 播放页的映射
 ```
 
-`public/` 里没有任何依赖、构建步骤、外部请求。`nsh/` 需要 [Native Shell](https://nsh.dev) 的 `nsh` 命令来构建。
+改界面改 `nsh/App.tsx`，然后重新打包、`cp` 进 `public/`。`nsh/` 需要 [Native Shell](https://nsh.dev) 的 `nsh` 命令。
 
 ## 行为
 
@@ -62,10 +61,14 @@ export PATH="$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$PATH"
 Cloudflare Workers 静态资源，`wrangler.toml` 里声明自定义域名。
 
 ```bash
+cd nsh && nsh package --target web --out dist
+cd .. && rm -rf public/* && cp -R "nsh/dist/看啥/." public/
+cp nsh/_headers public/
 wrangler deploy
 ```
 
-改完 `public/` 重新 deploy 即可，秒级生效。
+`public/_headers` 给 Cloudflare 的规则：wasm 以 `application/wasm` 下发（浏览器才能边下边编译），
+带内容哈希的文件一年 immutable，`index.html` 每次校验。
 
 ## 素材来源
 
