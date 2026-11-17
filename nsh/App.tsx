@@ -223,7 +223,7 @@ function App() {
               <Image src={COVERS[mv().i]} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             </View>
             <View style={{ width: 1, backgroundColor: "rgba(255,255,255,0.08)" }} />
-            <View class="flex-1 py-4 pr-4 gap-[7px]" style={{ paddingLeft: PAD ? 20 : 14 }}>
+            <View class="flex-1 py-4 pr-4 gap-[7px]" style={{ paddingLeft: PAD ? 24 : 14, ...(PAD ? { justifyContent: "center", gap: 12 } : {}) }}>
               <Text class="text-[19px] font-semibold text-[#F2EFE8]" style={{ numberOfLines: 2, ...(PAD ? { fontSize: 26 } : {}) }}>{mv().t}</Text>
               <Text class="text-[11.5px] text-[#8A8A93]" style={PAD ? { fontSize: 14 } : undefined}>{mv().y} · {mv().d} 分钟 · {mv().g}</Text>
               <Text class="text-[12.5px] leading-5 text-[#C9C6BF]" style={{ numberOfLines: PAD ? 4 : 3, ...(PAD ? { fontSize: 15, lineHeight: 24 } : {}) }}>{mv().r}</Text>
