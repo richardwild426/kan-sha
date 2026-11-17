@@ -61,6 +61,20 @@ if [ "$TRIM" = 1 ] && [ ! -d .nsh/rust/android ]; then
   echo "        13 MB 需要带裁剪逻辑的 nsh（main 分支 / nightly）"
 fi
 
+# 硬约束：classes.dex 读 libnsh.so 的字符串表，两边协议必须对得上。
+# crates.io 落后于 main，所以用 nightly（dex 已是新协议）配 crates.io 编出来的
+# .so，装上去一启动就崩：ArrayIndexOutOfBounds length=13; index=38
+# （Mounter.string）。这种坏包比大 8 MB 糟得多，直接拒绝裁剪。
+# 正式版（如 0.5.1）配 crates.io 的 0.5.0 .so 是验证过能跑的，允许。
+if [ "$TRIM" = 1 ] && [ -d .nsh/rust/android ] && command -v cargo >/dev/null 2>&1; then
+  case $(nsh --version) in
+    *nightly* | *dev*)
+      echo "  warn: 这个 nsh 是预发布构建，dex 与 crates.io 的 crate 协议不一致，跳过裁剪"
+      echo "        要 13 MB 的包只能等正式版支持现场编译运行时"
+      TRIM=0 ;;
+  esac
+fi
+
 if [ "$TRIM" = 1 ] && [ -d .nsh/rust/android ] && command -v cargo >/dev/null 2>&1; then
   echo "→ 编译裁剪版运行时（只留 JS 引擎，无 highlight/math/svg/crypto/…）"
   NDKBIN=$(ls -d "$NDK"/toolchains/llvm/prebuilt/*/bin 2>/dev/null | head -1)
