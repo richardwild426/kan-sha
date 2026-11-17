@@ -46,11 +46,19 @@ raw=$(ls "$tmp/raw"/*.apk)
 mkdir "$tmp/x"
 (cd "$tmp/x" && unzip -q "$raw")
 
-# --trim 需要 NSH 自带裁剪逻辑（>0.5.1）：它会把用到的 feature 写进
-# .nsh/rust 再编译。0.5.1 及更早版本不生成这个目录，这时只能出预编译版。
+# 裁剪要 .nsh/rust（nsh 生成的 crate 骨架）。0.5.1 及更早不写这个目录，
+# 但带裁剪逻辑的构建（main / nightly）会在 package 时生成它，所以没有就
+# 先用同一个 nsh 正常打一次包，它顺手把骨架写下来。
+if [ "$TRIM" = 1 ] && [ ! -d .nsh/rust/android ]; then
+  echo "→ 先打一次包，让 nsh 生成 .nsh/rust 骨架"
+  if ! nsh package App.tsx --target android --abi arm64-v8a -o "$tmp/gen" >"$tmp/gen.log" 2>&1; then
+    cat "$tmp/gen.log"; exit 1
+  fi
+fi
+
 if [ "$TRIM" = 1 ] && [ ! -d .nsh/rust/android ]; then
   echo "  注意：这个 NSH 版本不生成 .nsh/rust，跳过裁剪（得到预编译运行时版）"
-  echo "        要 13 MB 的包需要 NSH > 0.5.1"
+  echo "        13 MB 需要带裁剪逻辑的 nsh（main 分支 / nightly）"
 fi
 
 if [ "$TRIM" = 1 ] && [ -d .nsh/rust/android ] && command -v cargo >/dev/null 2>&1; then

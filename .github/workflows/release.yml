@@ -17,38 +17,40 @@ permissions:
 jobs:
   android:
     runs-on: ubuntu-latest
+    env:
+      APP_VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
 
       - name: 读版本号
         id: v
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            V="${{ inputs.version }}"
-            V="${V#v}"
-          else
-            V="${GITHUB_REF_NAME#v}"
-          fi
+          V="${APP_VERSION#v}"
           echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "APP_VERSION=$V" >> "$GITHUB_ENV"
+          echo "版本: $V"
 
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
 
+      # 需要带裁剪逻辑的 nsh（main / nightly）：它 package 时会写下
+      # .nsh/rust 骨架，脚本据此现场编译只含 JS 引擎的运行时。
+      # 0.5.1 不生成那个目录，出的是 22 MB 的预编译版。
       - name: 装 NSH
         run: |
-          curl -fsSL https://nsh.dev/install.sh | sh
+          curl -fsSL https://nsh.dev/install.sh | sh -s -- --nightly
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           "$HOME/.nsh/bin/nsh" --version
 
-      # runner 自带 Android SDK / build-tools / NDK，装 NSH 之后直接能打。
-      # 这里只确认一下关键工具在，缺了早失败好过打一半。
-      - name: 检查 Android 工具
+      # 裁剪版运行时是 cargo 交叉编译出来的，要 Rust 的 android target 和 NDK
+      - name: 装编译工具链
         run: |
-          echo "SDK: ${ANDROID_HOME:-未设置}"
+          rustup target add aarch64-linux-android
+          echo "ANDROID_NDK_HOME=$ANDROID_NDK_LATEST_HOME" >> "$GITHUB_ENV"
+          echo "NDK: $ANDROID_NDK_LATEST_HOME"
           echo "build-tools: $(ls -d "$ANDROID_HOME"/build-tools/* | tail -1)"
-          echo "NDK: ${ANDROID_NDK_LATEST_HOME:-未预装（只有 --trim 才需要）}"
 
       # 测试跑不过不该挡住发版：headless 依赖很少，但 CI 环境差异万一出问题，
       # 出包还是要继续。失败会标黄，看得到。
@@ -64,19 +66,19 @@ jobs:
           mkdir -p nsh/.signing
           printf '%s' "$KEYSTORE_B64" | base64 -d > nsh/.signing/release.keystore
 
-      # CI 里是 21 MB（预编译运行时）。13 MB 的裁剪版要靠 NSH > 0.5.1 现场
-      # 编译运行时，0.5.1 不会生成 .nsh/rust，所以拿不到 13 MB 的包。
-      # NSH 发了带裁剪逻辑的版本后，把 install.sh 换成定点版本即可自动变小。
+      # 13 MB：现场交叉编译一个只含 JS 引擎的运行时（首次约 2 分钟）。
+      # 编译失败会自动退回 22 MB 的预编译版，不会挡住发版。
       - name: 打包
         working-directory: nsh
         env:
           NSH_KEYSTORE: ${{ github.workspace }}/nsh/.signing/release.keystore
           NSH_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           NSH_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          APP_VERSION: ${{ steps.v.outputs.version }}
           BUILD_NUMBER: ${{ github.run_number }}
         run: |
           ./package-android.sh --trim "dist/看啥-${APP_VERSION}-arm64.apk"
+          # apksigner 顺手生成 .idsig（v4 签名），Release 里不需要
+          rm -f dist/*.idsig
           ls -lh dist/
 
       - name: 校验签名与体积
