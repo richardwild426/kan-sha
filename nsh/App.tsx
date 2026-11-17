@@ -145,7 +145,7 @@ function App() {
     const m = mv();
     if (!watched().includes(m.i)) bump([...watched(), m.i]);
     openUrl(m.url).catch(() => {});
-    setTimeout(() => next(), 200);
+    next();
   };
 
   const reset = () => {
@@ -209,6 +209,7 @@ function App() {
         <View class="flex-1 justify-end items-center px-5" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 22px)" }}>
           <View style={{ width: "100%", maxWidth: 560 }}>
           <View
+            testID="ticket"
             panActivation={{ activeOffsetX: 18, failOffsetY: 26 }}
             onPanEnd={onSwipeEnd}
             class="flex-row rounded-2xl bg-[rgba(14,14,18,0.86)] border border-[rgba(255,255,255,0.09)] overflow-hidden">
