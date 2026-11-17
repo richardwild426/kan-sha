@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>看啥 · 今晚看什么</title>
+<meta name="description" content="打开就随机推荐一部 B 站能看的电影。33 部片单，一轮不重复。">
+<meta name="theme-color" content="#0A0A0C">
+<meta property="og:title" content="看啥">
+<meta property="og:description" content="打开就随机推荐一部 B 站能看的电影。">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230A0A0C'/><text y='.9em' x='50%' text-anchor='middle' font-size='64' fill='%23E8C07A' font-family='serif'>啥</text></svg>">
+<style>
+:root{
+  --ink:#0A0A0C; --card:#14151C; --line:#262833; --gold:#E8C07A;
+  --text:#F5F5F7; --muted:#A8AAB6; --dim:#6E7080; --faint:#4A4C58;
+  --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--ink); color:var(--text); font-family:var(--sans);
+  -webkit-font-smoothing:antialiased; overflow:hidden;
+  -webkit-tap-highlight-color:transparent;
+}
+.stage{position:relative;width:100%;height:100dvh;overflow:hidden;isolation:isolate}
+
+/* ---------- backdrop ---------- */
+.backdrop{position:absolute;inset:0;z-index:0;overflow:hidden;background:#08080A}
+.backdrop img{
+  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 24%;
+  opacity:0;transition:opacity .62s ease;
+}
+.backdrop img.on{opacity:1}
+.backdrop img.blurred{filter:blur(52px) saturate(1.2) brightness(.62);transform:scale(1.55);object-position:center}
+.veil{position:absolute;inset:0;background:rgba(10,10,12,.42)}
+.scrim-t{position:absolute;inset:0 0 auto 0;height:26%;background:linear-gradient(180deg,#08080A 0%,rgba(8,8,10,0) 100%)}
+.scrim-b{position:absolute;inset:auto 0 0 0;height:70%;background:linear-gradient(0deg,#07070A 4%,rgba(7,7,10,.88) 38%,rgba(7,7,10,.42) 68%,rgba(7,7,10,0) 100%)}
+
+/* ---------- header ---------- */
+.top{
+  position:relative;z-index:3;height:124px;padding:0 64px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.brand{display:flex;flex-direction:column;gap:5px}
+.brand b{font-size:30px;font-weight:700;letter-spacing:.06em;line-height:1}
+.brand span{font-size:12px;color:var(--dim);letter-spacing:.02em}
+.prog{display:flex;align-items:center;gap:16px}
+.prog span{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.track{width:120px;height:3px;border-radius:99px;background:#2A2C36;overflow:hidden}
+.fill{height:100%;width:0;border-radius:99px;background:var(--gold);transition:width .45s cubic-bezier(.4,0,.2,1)}
+
+/* ---------- ticket ---------- */
+.main{position:relative;z-index:3;display:flex;align-items:flex-end;height:calc(100% - 124px);padding:0 64px 64px}
+.ticket{
+  width:100%;max-width:1312px;margin:0 auto;
+  display:flex;align-items:stretch;
+  background:rgba(20,21,28,.94);
+  border:1px solid var(--line);border-radius:20px;overflow:hidden;
+  backdrop-filter:blur(24px) saturate(1.1);-webkit-backdrop-filter:blur(24px) saturate(1.1);
+  box-shadow:0 32px 90px -28px rgba(0,0,0,.85);
+  animation:rise .6s cubic-bezier(.16,1,.3,1) both;
+}
+@keyframes rise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+
+.poster{
+  position:relative;flex:0 0 232px;min-height:312px;background:#0E0F15;overflow:hidden;
+}
+.poster img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .4s ease}
+.poster img.on{opacity:1}
+.poster::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,0) 70%,rgba(10,10,13,.35) 100%)}
+
+.stub{
+  flex:0 0 46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  background:#101118;border-right:1px solid rgba(38,40,51,.75);
+}
+.stub i{width:1px;height:3px;background:#3A3C48;font-style:normal}
+
+.body{flex:1 1 auto;min-width:0;padding:0 24px 0 34px;display:flex;flex-direction:column;justify-content:center;gap:14px}
+.eyebrow{font-size:11px;letter-spacing:.22em;color:#8A7A5E;font-weight:500}
+.title{
+  font-size:clamp(30px,3.1vw,42px);line-height:1.18;font-weight:700;letter-spacing:.01em;
+  text-shadow:0 2px 20px rgba(0,0,0,.4);
+}
+.meta{display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+.meta em{font-style:normal;color:var(--faint)}
+.tag{
+  font-size:10px;color:#9EA0AE;border:1px solid #3A3C48;border-radius:99px;
+  padding:3px 10px;line-height:1.2;white-space:nowrap;
+}
+.review{font-size:16px;line-height:1.65;color:#B4B6C2;max-width:46em}
+
+.side{
+  flex:0 0 300px;display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;
+  padding:34px 40px 34px 20px;
+}
+.rating{display:flex;flex-direction:column;align-items:flex-end;gap:1px}
+.rating b{font-size:34px;line-height:1.05;color:var(--gold);font-weight:600;font-variant-numeric:tabular-nums}
+.rating span{font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums}
+.rating i{font-style:normal;font-size:11px;color:var(--dim);letter-spacing:.14em;margin-bottom:4px}
+.ctl{display:flex;flex-direction:column;align-items:flex-end;gap:11px}
+
+.btn{
+  font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;
+  border-radius:99px;border:1px solid transparent;
+  transition:transform .16s ease,background .2s ease,border-color .2s ease,color .2s ease;
+}
+.btn:active{transform:scale(.97)}
+.btn:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.primary{width:212px;height:52px;background:var(--gold);color:#17140D}
+.primary:hover{background:#F0CC8A}
+.ghost{width:212px;height:48px;background:transparent;border-color:#33353F;color:#C9CBD5;font-weight:500}
+.ghost:hover{border-color:#4A4C58;color:#EDEDF2}
+.hint{font-size:10px;color:#5A5C6A;letter-spacing:.03em}
+.hint kbd{font-family:inherit;color:#7A7C8A}
+
+.is-swapping .backdrop img.on{opacity:.35}
+
+/* ---------- done ---------- */
+.done{
+  position:absolute;inset:0;z-index:5;display:none;
+  align-items:center;justify-content:center;
+  background:rgba(6,6,8,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+}
+.done.show{display:flex;animation:fade .5s ease both}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.done-in{text-align:center;padding:32px;width:100%;max-width:560px}
+.done-in .prog-lbl{font-size:12px;color:var(--dim);letter-spacing:.24em;margin-bottom:22px}
+.done-in h2{font-size:clamp(30px,4vw,44px);font-weight:700;letter-spacing:.02em;margin-bottom:10px}
+.done-in p{font-size:15px;color:var(--muted);margin-bottom:34px}
+.grid{display:grid;grid-template-columns:repeat(11,1fr);gap:6px;width:346px;margin:0 auto 38px}
+.grid i{aspect-ratio:1;border-radius:5px;background:var(--gold);opacity:0;animation:pop .5s cubic-bezier(.2,1.4,.4,1) forwards}
+@keyframes pop{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:none}}
+.reset{
+  font-family:inherit;font-size:14px;font-weight:600;color:#17140D;background:var(--gold);
+  border:0;border-radius:99px;padding:15px 34px;cursor:pointer;transition:transform .16s ease,background .2s
+}
+.reset:hover{background:#F0CC8A}
+.reset:active{transform:scale(.97)}
+
+/* ---------- mobile / tablet ---------- */
+@media (max-width:900px){
+  .top{height:82px;padding:0 22px}
+  .brand b{font-size:23px}
+  .brand span{display:none}
+  .prog{gap:10px}
+  .prog span{font-size:11px}
+  .track{width:76px;height:2px}
+  .main{height:calc(100% - 82px);padding:0 22px calc(18px + env(safe-area-inset-bottom));align-items:flex-start}
+  .ticket{
+    flex-direction:column;background:transparent;border:0;border-radius:0;
+    backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:none;
+    height:100%;padding-top:8px;animation:none;
+  }
+  .poster{
+    flex:0 0 auto;width:min(72%,276px);margin:6px auto 0;min-height:0;aspect-ratio:3/4;
+    border-radius:14px;box-shadow:0 26px 60px -20px #000;
+  }
+  .poster::after{background:linear-gradient(0deg,rgba(10,10,13,.35) 0%,rgba(0,0,0,0) 45%)}
+  .stub{display:none}
+  .body{padding:26px 0 0;gap:11px;justify-content:flex-start;flex:1 1 auto}
+  .eyebrow{font-size:10px;letter-spacing:.2em}
+  .title{font-size:clamp(26px,7.4vw,34px);line-height:1.24}
+  .meta{font-size:12px;gap:8px}
+  .tag{font-size:9px;padding:2px 8px}
+  .review{font-size:14px;line-height:1.62}
+  .side{
+    flex:0 0 auto;width:100%;flex-direction:row-reverse;align-items:center;justify-content:space-between;
+    padding:18px 0 0;gap:14px;
+  }
+  .rating{align-items:flex-start;flex-direction:row;align-items:baseline;gap:8px}
+  .rating i{display:none}
+  .rating b{font-size:19px}
+  .rating span{font-size:11px}
+  .ctl{flex-direction:row;align-items:center;gap:10px;flex:0 0 auto}
+  .primary{width:auto;padding:0 30px;height:50px;font-size:15px}
+  .ghost{width:auto;padding:0 22px;height:50px;font-size:14px}
+  .hint{display:none}
+  .grid{grid-template-columns:repeat(11,1fr);width:100%;gap:5px;margin-bottom:32px}
+  .done-in{padding:24px 20px}
+  .done-in p{font-size:14px;margin-bottom:28px}
+}
+@media (max-width:900px) and (max-height:700px){
+  .poster{width:min(56%,196px)}
+  .body{padding-top:14px;gap:8px}
+  .review{font-size:13px;line-height:1.55}
+}
+/* tablet: more breathing room, bigger poster */
+@media (min-width:601px) and (max-width:900px){
+  .top{padding:0 40px;height:96px}
+  .main{padding:0 40px 40px}
+  .poster{width:min(46%,320px);margin-top:10px}
+  .body{padding-top:34px;gap:13px}
+  .title{font-size:clamp(32px,4.4vw,42px)}
+  .review{font-size:16px;line-height:1.68}
+  .primary{padding:0 44px;height:54px}
+  .ghost{padding:0 30px;height:54px}
+  .grid{grid-template-columns:repeat(11,1fr);width:min(100%,420px)}
+}
+/* landscape phones & very short viewports */
+@media (max-height:520px) and (min-width:600px){
+  .top{height:64px;padding:0 24px}
+  .brand b{font-size:18px}
+  .brand span{display:none}
+  .main{height:calc(100% - 64px);padding:0 24px 12px;align-items:flex-end}
+  .poster{flex:0 0 124px;width:124px;min-height:0;aspect-ratio:auto;margin:0;border-radius:0;box-shadow:none}
+  .stub{display:flex;flex:0 0 22px}
+  .body{padding:0 16px 0 20px;gap:6px}
+  .title{font-size:22px;line-height:1.2}
+  .eyebrow{display:none}
+  .meta{font-size:11px;gap:7px}
+  .review{font-size:12px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .side{flex-basis:216px;padding:14px 18px 14px 12px}
+  .rating i{display:none}
+  .rating b{font-size:22px}
+  .rating span{font-size:10px}
+  .ctl{gap:7px}
+  .primary{width:170px;height:38px;font-size:13px}
+  .ghost{width:170px;height:34px;font-size:13px}
+  .hint{display:none}
+  .ticket{border-radius:14px;flex-direction:row;background:rgba(20,21,28,.94);border:1px solid var(--line);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);padding-top:0;height:auto}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}
+}
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+
+  <div class="backdrop">
+    <img id="bgA" alt="" aria-hidden="true" decoding="async" fetchpriority="high">
+    <img id="bgB" alt="" aria-hidden="true" decoding="async">
+    <div class="scrim-t"></div>
+    <div class="veil"></div>
+    <div class="scrim-b"></div>
+  </div>
+
+  <header class="top">
+    <div class="brand"><b>看啥</b><span>movie.zvector.top</span></div>
+    <div class="prog">
+      <span id="progText">已看 0 / 33</span>
+      <div class="track"><div class="fill" id="progFill"></div></div>
+    </div>
+  </header>
+
+  <div class="main">
+    <article class="ticket" id="ticket">
+      <div class="poster"><img id="posterImg" alt="" decoding="async"></div>
+      <div class="stub" aria-hidden="true"></div>
+      <div class="body">
+        <span class="eyebrow">今晚看这部</span>
+        <h1 class="title" id="title">—</h1>
+        <div class="meta" id="meta"></div>
+        <p class="review" id="review"></p>
+      </div>
+      <div class="side">
+        <div class="rating">
+          <i>B站评分</i>
+          <b id="score">—</b>
+          <span id="votes"></span>
+        </div>
+        <div class="ctl">
+          <button class="btn primary" id="btnGo">就看这个</button>
+          <button class="btn ghost" id="btnNext">换一个</button>
+          <span class="hint"><kbd>空格</kbd> 换一部 · <kbd>回车</kbd> 就去看</span>
+        </div>
+      </div>
+    </article>
+  </div>
+
+  <div class="done" id="done" role="dialog" aria-label="全部看完">
+    <div class="done-in">
+      <div class="prog-lbl">已看 33 / 33</div>
+      <h2>这一单吃完了</h2>
+      <p>33 部，全看完了。厉害。</p>
+      <div class="grid" id="grid"></div>
+      <button class="reset" id="btnReset">重新来一轮</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const RAW = [[1,"阳光小美女","2023",102,"喜剧 / 剧情",9.7,464,"会员","https://www.bilibili.com/bangumi/play/ep790571","全家都是失败者，推着破面包车去参加比赛。笑得一塌糊涂，最后又有点酸",1,0],[2,"晒后假日","2023",100,"剧情",9.6,255,"会员","https://www.bilibili.com/bangumi/play/ss45798","一场土耳其旅行，很多年后才看懂父亲当时的沉默",2,0],[3,"伯德小姐","2024",93,"剧情 / 家庭",9.3,197,"会员","https://www.bilibili.com/bangumi/play/ss46655","和妈妈吵完架就想离家，真走了又舍不得那辆车",3,0],[4,"小妇人","2024",135,"剧情 / 爱情",9.7,4511,"付费","https://www.bilibili.com/bangumi/play/ss47234","四姐妹各走各的路，乔劝你要自己说了算",4,0],[5,"布鲁克林","2022",106,"剧情 / 爱情",9.0,171,"会员","https://www.bilibili.com/bangumi/play/ss41878","小镇姑娘去纽约，乡愁和选择一起到站",5,0],[6,"逃脱","2026",118,"剧情",0,0,"付费","https://www.bilibili.com/bangumi/play/ss273042","回到童年的苏格兰小岛，把散掉的自己一片片捡回来",6,0],[7,"夏日细语","2023",95,"剧情",9.7,165,"会员","https://www.bilibili.com/bangumi/play/ss45799","被送去亲戚家过个夏天，安静地把一个孩子救了回来",7,0],[8,"四月物语","2021",67,"爱情",9.6,2492,"会员","https://www.bilibili.com/bangumi/play/ss39284","67 分钟，一场暗恋，一场樱花雨。心动成本最低的一部",8,0],[9,"花与爱丽丝","2021",135,"剧情 / 喜剧",9.6,1718,"会员","https://www.bilibili.com/bangumi/play/ss39286","两个女孩和一个男生，谁都没做错，谁都心疼",9,0],[10,"情书","2021",117,"剧情 / 爱情",9.8,16824,"会员","https://www.bilibili.com/bangumi/play/ss39429","寄往天国的一封信，回信的人是来代替说再见的",10,0],[11,"百万元与苦虫女","2024",121,"",9.2,148,"会员","https://www.bilibili.com/bangumi/play/ss48710","存够一百万就搬出去，一边打工一边把自己活明白",11,0],[12,"蜂蜜与四叶草","2022",116,"爱情 / 漫画改",9.4,307,"会员","https://www.bilibili.com/bangumi/play/ss41213","一群美术生，才华和喜欢的人都藏不住",12,0],[13,"蓦然回首","2025",75,"剧情 / 动画",9.8,4111,"会员","https://www.bilibili.com/bangumi/play/ss68473","75 分钟就讲完了一辈子。画画的人看完会想打开画布",13,13],[14,"去唱卡拉OK吧！","2025",108,"喜剧",9.8,796,"会员","https://www.bilibili.com/bangumi/play/ep1821134","黑帮大哥找初中生教唱歌，荒诞得理直气壮",14,0],[15,"下妻物语","2021",102,"喜剧",9.7,1717,"会员","https://www.bilibili.com/bangumi/play/ep376437","洛可可裙子配重型摩托，土味和华丽一起炸",15,0],[16,"春天的故事","2021",107,"剧情 / 喜剧",9.1,334,"会员","https://www.bilibili.com/bangumi/play/ss37998","侯麦里最暖和的一部，一顿饭里的项链和猜疑",16,0],[17,"夏天的故事","2021",114,"剧情 / 爱情",9.3,188,"会员","https://www.bilibili.com/bangumi/play/ss38002","一个男生和三个女孩，海边，全是犹豫不决",17,0],[18,"秋天的故事","2021",111,"剧情 / 爱情",9.3,160,"会员","https://www.bilibili.com/bangumi/play/ss38003","葡萄园里偷偷登的征婚广告，好心办出的妙事",18,0],[19,"冬天的故事","2021",114,"剧情 / 爱情",9.0,145,"会员","https://www.bilibili.com/bangumi/play/ep385380","地址写错就走散五年，她还在等那个对的人",19,0],[20,"双姝奇缘","2021",95,"剧情 / 喜剧",9.6,278,"会员","https://www.bilibili.com/bangumi/play/ep387153","城里姑娘和乡下姑娘，两段话就成了一生的朋友",20,0],[21,"绿光","2021",99,"剧情 / 爱情",0,0,"会员","https://www.bilibili.com/bangumi/play/ss39399","没人陪的夏天，她只想等到那束绿光才肯回头",21,0],[22,"荒野生存","2018",146,"剧情 / 传记",9.6,1114,"会员","https://www.bilibili.com/bangumi/play/ss25979","二十多岁抛下一切去荒野。有人看完真辞了职",22,0],[23,"时时刻刻","2021",110,"剧情 / 传记",9.7,565,"会员","https://www.bilibili.com/bangumi/play/ss42324","三个时代的三个女人，被同一本小说串起来",23,0],[24,"泳者之心","2024",129,"",9.7,680,"会员","https://www.bilibili.com/bangumi/play/ss48504","第一个游过英吉利海峡的女人，靠的不是天赋，是死不认输",24,0],[25,"还有明天","2025",118,"剧情",9.7,1172,"会员","https://www.bilibili.com/bangumi/play/ss89626","战后罗马的家庭主妇，把最沉默的一天过成反击",25,0],[26,"与玛格丽特的午后","2022",82,"喜剧",9.9,2546,"会员","https://www.bilibili.com/bangumi/play/ss42015","82 分钟。看完像被人轻轻拍了下背",26,0],[27,"机器人之梦","2024",102,"剧情 / 动画",9.8,1783,"会员","https://www.bilibili.com/bangumi/play/ep1112126","一句台词都没有，却能把你哭得稀里哗啦",27,0],[28,"巴黎夏日","2026",78,"",0,0,"会员","https://www.bilibili.com/bangumi/play/ep3092456","奥运会期间的巴黎，一个 30 岁的女人在人群里找自己",28,0],[29,"诺丁山","2023",124,"喜剧 / 爱情",9.3,294,"会员","https://www.bilibili.com/bangumi/play/ep747311","大明星进了小书店，最标准的爱情喜剧，也最治失眠",29,0],[30,"五月之恋","2023",107,"爱情",9.6,441,"会员","https://www.bilibili.com/bangumi/play/ss44576","五月天、网络、台北和哈尔滨，隔着屏幕的心动",30,0],[31,"天空的另一面","2026",86,"",0,0,"会员","https://www.bilibili.com/bangumi/play/ep3066720","八十岁被送去隔离，她划船跑了。荒诞得很认真",31,0],[32,"河狸变身计划","2026",105,"科幻 / 喜剧",4.3,2433,"付费","https://www.bilibili.com/bangumi/play/ss213047","钻进河狸的身体里搞野外探险，脑子放假的那种爽",32,32],[33,"挽救计划","2026",157,"剧情 / 科幻",9.8,10840,"会员","https://www.bilibili.com/bangumi/play/ep5389730","157 分钟，人类最后一个老师和一个外星搭子在太空救地球",33,33]];
+const MOVIES = RAW.map(function(r){
+  return {i:r[0], t:r[1], y:r[2], d:r[3], g:r[4], s:r[5], v:r[6], badge:r[7], url:r[8], r:r[9], bg:r[11] ? 'assets/bgs/' + r[11] + '.webp' : '', cover:'assets/covers/' + r[10] + '.webp'};
+});
+
+const KEY = 'kansha.watched.v1';
+const $ = function(id){ return document.getElementById(id); };
+
+/* ---- watched state ---- */
+let watched;
+try { watched = new Set(JSON.parse(localStorage.getItem(KEY) || '[]')); }
+catch (e) { watched = new Set(); }
+watched = new Set([].concat(Array.from(watched)).filter(function(n){ return Number.isInteger(n) && n >= 1 && n <= MOVIES.length; }));
+
+function save(){
+  try { localStorage.setItem(KEY, JSON.stringify(Array.from(watched))); } catch (e) {}
+}
+
+/* ---- shuffle pool ---- */
+let pool = [];
+function refill(){
+  pool = MOVIES.filter(function(m){ return !watched.has(m.i); }).map(function(m){ return m.i; });
+  for (let i = pool.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = pool[i]; pool[i] = pool[j]; pool[j] = t;
+  }
+}
+function byId(n){
+  for (let k = 0; k < MOVIES.length; k++) if (MOVIES[k].i === n) return MOVIES[k];
+  return null;
+}
+
+/* ---- render ---- */
+let cur = null;
+const posterImg = $('posterImg');
+const bgA = $('bgA'), bgB = $('bgB');
+let bgFront = bgA, bgBack = bgB, bgCur = '';
+
+function preload(m){
+  new Image().src = m.cover;
+  if (m.bg) new Image().src = m.bg;
+}
+
+function fmtVotes(v){
+  if (v >= 10000) return (v / 10000).toFixed(1).replace(/\.0$/, '') + ' 万人评分';
+  return v + ' 人评分';
+}
+
+function render(m){
+  cur = m;
+  const src = m.bg || m.cover;
+  const isPoster = !m.bg;
+
+  if (bgCur !== src){
+    bgCur = src;
+    const net = bgBack;
+    net.className = isPoster ? 'blurred' : '';
+    net.onload = function(){
+      net.onload = null;
+      if (bgCur !== src) return;
+      net.classList.add('on');
+      const old = bgFront;
+      bgFront = net; bgBack = old;
+      setTimeout(function(){ if (old !== bgFront) old.classList.remove('on'); }, 660);
+    };
+    net.src = src;
+  }
+
+  if (posterImg.getAttribute('data-src') !== m.cover){
+    posterImg.classList.remove('on');
+    posterImg.setAttribute('data-src', m.cover);
+    posterImg.onload = function(){ posterImg.classList.add('on'); };
+    posterImg.src = m.cover;
+  }
+  posterImg.alt = m.t + ' 海报';
+
+  $('title').textContent = m.t;
+
+  const parts = [];
+  if (m.y) parts.push('<span>' + m.y + '</span>');
+  if (m.d) parts.push('<em>·</em><span>' + m.d + ' 分钟</span>');
+  if (m.g) parts.push('<em>·</em><span>' + m.g + '</span>');
+  if (m.badge) parts.push('<span class="tag">' + m.badge + '</span>');
+  $('meta').innerHTML = parts.join('');
+
+  $('review').textContent = m.r;
+  $('score').textContent = m.s ? m.s.toFixed(1) : '—';
+  $('votes').textContent = m.v ? fmtVotes(m.v) : '';
+  document.title = m.t + ' · 看啥';
+
+  updateProgress();
+}
+
+function updateProgress(){
+  const n = watched.size, total = MOVIES.length;
+  $('progText').textContent = '已看 ' + n + ' / ' + total;
+  $('progFill').style.width = (n / total * 100) + '%';
+}
+
+/* ---- flow ---- */
+function next(){
+  if (!pool.length) refill();
+  if (!pool.length){ showDone(); return; }
+  const n = pool.pop();
+  render(byId(n));
+  if (pool.length) preload(byId(pool[pool.length - 1]));
+}
+
+function markWatched(){
+  if (!cur) return;
+  watched.add(cur.i);
+  save();
+  updateProgress();
+}
+
+function go(){
+  if (!cur) return;
+  markWatched();
+  window.open(cur.url, '_blank', 'noopener');
+  if (watched.size >= MOVIES.length){ showDone(); return; }
+  next();
+}
+
+let swapTimer = 0;
+function swap(){
+  if (watched.size >= MOVIES.length){ showDone(); return; }
+  const stage = $('stage');
+  stage.classList.add('is-swapping');
+  clearTimeout(swapTimer);
+  swapTimer = setTimeout(function(){ stage.classList.remove('is-swapping'); }, 180);
+  if (pool.length > 1){
+    const last = pool.pop();
+    pool.unshift(last);
+    const n = pool.pop();
+    render(byId(n));
+  } else {
+    next();
+  }
+}
+
+function showDone(){
+  const grid = $('grid');
+  if (!grid.childElementCount){
+    for (let i = 0; i < MOVIES.length; i++){
+      const c = document.createElement('i');
+      c.style.animationDelay = (i * 26) + 'ms';
+      grid.appendChild(c);
+    }
+  }
+  $('done').classList.add('show');
+  $('progText').textContent = '已看 ' + MOVIES.length + ' / ' + MOVIES.length;
+  $('progFill').style.width = '100%';
+}
+
+function reset(){
+  watched = new Set();
+  save();
+  $('done').classList.remove('show');
+  refill();
+  next();
+}
+
+/* ---- events ---- */
+$('btnGo').addEventListener('click', go);
+$('btnNext').addEventListener('click', swap);
+$('btnReset').addEventListener('click', reset);
+
+document.addEventListener('keydown', function(e){
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if ($('done').classList.contains('show')){
+    if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); reset(); }
+    return;
+  }
+  if (e.key === ' ' || e.key === 'Spacebar'){
+    e.preventDefault(); swap();
+  } else if (e.key === 'Enter'){
+    e.preventDefault(); go();
+  }
+});
+
+/* swipe left/right to switch on touch */
+let tx = 0, ty = 0;
+document.addEventListener('touchstart', function(e){
+  tx = e.touches[0].clientX; ty = e.touches[0].clientY;
+}, {passive:true});
+document.addEventListener('touchend', function(e){
+  const dx = e.changedTouches[0].clientX - tx;
+  const dy = e.changedTouches[0].clientY - ty;
+  if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.6) swap();
+}, {passive:true});
+
+/* ---- boot ---- */
+document.querySelector('.stub').innerHTML = new Array(17).join('<i></i>');
+refill();
+
+if (watched.size >= MOVIES.length){
+  /* everything already watched: start a fresh round silently */
+  watched = new Set(); save();
+  refill();
+}
+next();
+</script>
+</body>
+</html>

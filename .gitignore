@@ -1,0 +1,10 @@
+.alma-snapshots
+.DS_Store
+.wrangler/
+node_modules/
+
+# raw Bilibili API dumps: contain other users' uids and nicknames
+reply.json
+sub.json
+view.json
+ep.json
