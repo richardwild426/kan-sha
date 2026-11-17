@@ -79,11 +79,18 @@ for f in ('svg', 'net', 'websocket', 'updater'):
     s = re.sub(r'^%s = \[.*?\]\n' % f, '', s, flags=re.M)
 ac.write_text(s)
 PY
+  # quickjs-jit-sys 用 bindgen 生成绑定，bindgen 不知道 NDK 的 sysroot，
+  # 会去摸宿主的 /usr/include 然后找不到 bits/libc-header-start.h。
+  # 带版本号的 triple（android26）+ --sysroot 一起显式告诉它。
+  SYSROOT=$(dirname "$NDKBIN")/sysroot
+  BINDGEN_ARGS="--target=aarch64-linux-android26 --sysroot=$SYSROOT"
   if ( cd .nsh/rust && \
        CC_aarch64_linux_android="$CC" \
        CXX_aarch64_linux_android="${CC}++" \
        AR_aarch64_linux_android="$NDKBIN/llvm-ar" \
        CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$CC" \
+       BINDGEN_EXTRA_CLANG_ARGS_aarch64_linux_android="$BINDGEN_ARGS" \
+       BINDGEN_EXTRA_CLANG_ARGS="$BINDGEN_ARGS" \
        PATH="$NDKBIN:$PATH" \
        cargo build --release --target aarch64-linux-android \
          -p nsh-app--android --no-default-features --features js \
