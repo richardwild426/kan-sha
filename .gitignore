@@ -12,3 +12,8 @@ ep.json
 # NSH build output
 nsh/.nsh/
 nsh/dist/
+
+# Android release signing material lives in GitHub Secrets, never in the repo
+nsh/.signing/
+*.keystore
+*.jks

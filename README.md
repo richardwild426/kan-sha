@@ -86,6 +86,28 @@ export PATH="$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$PATH"
 跟网页版的差别：布局由 NSH 的 Rust 核心算（Taffy），不用 CSS 媒体查询；已看记录走 `Storage`（web 上落在
 `localStorage` 里，Android 上是应用自己的存储）；「就看这个」用 `openUrl` 交给系统浏览器。
 
+## 发版
+
+APK 由 GitHub Actions 出，挂在 [Releases](https://github.com/richardwild426/kan-sha/releases) 上。
+
+```sh
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+打 tag 后 `.github/workflows/release.yml` 会：装 NSH → `nsh test` → 用 release keystore
+签名打包 → 建 Release 并上传 `看啥-1.0.0-arm64.apk`。
+
+- **版本号**取自 tag（`v1.0.0` → `versionName=1.0.0`），`versionCode` 用 `github.run_number` 递增。
+  手机靠 `versionCode` 判断能不能覆盖安装，所以每次都涨。
+- 也可以在 Actions 页面手动 `Run workflow`，填版本号，但不会建 Release（只留 artifact）。
+- **签名证书不放在仓库里**，在 Secrets：`ANDROID_KEYSTORE_BASE64`、`ANDROID_KEYSTORE_PASSWORD`、
+  `ANDROID_KEY_ALIAS`。证书丢了就再也无法覆盖升级，只能让用户卸载重装 —— 务必备份。
+
+> CI 出的是 **21 MB**（预编译运行时）。13 MB 的裁剪版需要 NSH > 0.5.1 现场编译运行时，
+> 而 0.5.1 不生成 `.nsh/rust`，所以 CI 拿不到更小的包。NSH 发布带裁剪逻辑的正式版后，
+> 把 workflow 里 `install.sh` 改成定点版本就自动变小。
+
 ## 部署
 
 Cloudflare Workers 静态资源，`wrangler.toml` 里声明自定义域名。

@@ -25,7 +25,8 @@ OUT=${1:-.nsh/out/看啥.apk}
 JAVA_HOME=${JAVA_HOME:-$HOME/.local/jdk/jdk-21.0.13+9/Contents/Home}
 ANDROID_HOME=${ANDROID_HOME:-$HOME/Library/Android/sdk}
 NDK=${ANDROID_NDK_HOME:-$(ls -d "$ANDROID_HOME"/ndk/* 2>/dev/null | tail -1)}
-BT="$ANDROID_HOME/build-tools/35.0.1"
+# build-tools 版本随 runner 的镜像变，挑最新的
+BT=$(ls -d "$ANDROID_HOME"/build-tools/* 2>/dev/null | sort -V | tail -1)
 export JAVA_HOME ANDROID_HOME
 PATH="$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$PATH"
 export PATH
@@ -34,12 +35,23 @@ tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 
 echo "→ nsh package (arm64-v8a only)"
-nsh package App.tsx --target android --abi arm64-v8a -o "$tmp/raw" >"$tmp/pack.log" 2>&1 || {
+VER_ARGS=""
+[ -n "${APP_VERSION:-}" ] && VER_ARGS="--app-version $APP_VERSION"
+[ -n "${BUILD_NUMBER:-}" ] && VER_ARGS="$VER_ARGS --build $BUILD_NUMBER"
+# shellcheck disable=SC2086
+nsh package App.tsx --target android --abi arm64-v8a $VER_ARGS -o "$tmp/raw" >"$tmp/pack.log" 2>&1 || {
   cat "$tmp/pack.log"; exit 1; }
 raw=$(ls "$tmp/raw"/*.apk)
 
 mkdir "$tmp/x"
 (cd "$tmp/x" && unzip -q "$raw")
+
+# --trim 需要 NSH 自带裁剪逻辑（>0.5.1）：它会把用到的 feature 写进
+# .nsh/rust 再编译。0.5.1 及更早版本不生成这个目录，这时只能出预编译版。
+if [ "$TRIM" = 1 ] && [ ! -d .nsh/rust/android ]; then
+  echo "  注意：这个 NSH 版本不生成 .nsh/rust，跳过裁剪（得到预编译运行时版）"
+  echo "        要 13 MB 的包需要 NSH > 0.5.1"
+fi
 
 if [ "$TRIM" = 1 ] && [ -d .nsh/rust/android ] && command -v cargo >/dev/null 2>&1; then
   echo "→ 编译裁剪版运行时（只留 JS 引擎，无 highlight/math/svg/crypto/…）"
@@ -137,8 +149,18 @@ PY
 echo "→ zipalign + 签名"
 "$BT/zipalign" -f -p 4 "$tmp/packed.apk" "$tmp/aligned.apk"
 mkdir -p "$(dirname "$OUT")"
-"$BT/apksigner" sign --ks "$HOME/.android/debug.keystore" \
-  --ks-pass pass:android --key-pass pass:android \
-  --ks-key-alias androiddebugkey --out "$OUT" "$tmp/aligned.apk"
+
+# 发版用 NSH_KEYSTORE 指向的 release key；日常构建退回本机 debug key。
+# 两者不能混用：换签名后已装的旧版本无法覆盖升级，只能先卸载。
+if [ -n "${NSH_KEYSTORE:-}" ]; then
+  "$BT/apksigner" sign --ks "$NSH_KEYSTORE" \
+    --ks-pass "pass:$NSH_KEYSTORE_PASSWORD" --key-pass "pass:$NSH_KEYSTORE_PASSWORD" \
+    --ks-key-alias "${NSH_KEY_ALIAS:-kansha}" --out "$OUT" "$tmp/aligned.apk"
+else
+  echo "  (debug key — 仅自用测试，不要发给别人装)"
+  "$BT/apksigner" sign --ks "$HOME/.android/debug.keystore" \
+    --ks-pass pass:android --key-pass pass:android \
+    --ks-key-alias androiddebugkey --out "$OUT" "$tmp/aligned.apk"
+fi
 
 printf '%s: %s\n' "$OUT" "$(ls -lh "$OUT" | awk '{print $5}')"
