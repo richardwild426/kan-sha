@@ -51,6 +51,10 @@ nsh package App.tsx --target android         # .nsh/out/看啥.apk
 nsh package App.tsx --target android --run   # 装到已连接的设备/模拟器并启动
 ```
 
+需要 NSH 0.5.1 或更新。0.5.0 起 web 构建只链接用到的 `nsh/base` core、crypto 和 URL
+（[#1039](https://github.com/longbridge/nsh/issues/1039) 的后续，[#1220](https://github.com/longbridge/nsh/pull/1220)），
+APK 里引擎从 4.2 MB 降到 3.8 MB。
+
 （也能 `nsh package --target web` 出网页版，但引擎 wasm 会让首屏涨到 1 MB 以上，
 所以网站不用它。）
 
