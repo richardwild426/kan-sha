@@ -47,9 +47,13 @@ Android 那边引擎是编进 apk 的，没有下载成本，所以用 NSH。
 ```sh
 cd nsh
 nsh test                                     # headless 测试
-nsh package App.tsx --target android         # .nsh/out/看啥.apk
-nsh package App.tsx --target android --run   # 装到已连接的设备/模拟器并启动
+./package-android.sh                         # .nsh/out/看啥.apk（21 MB）
+nsh package App.tsx --target android --run   # 装到已连接的设备/启动，不裁剪（81 MB）
 ```
+
+`package-android.sh` 把默认的 81 MB 压到 21 MB：只打 `arm64-v8a`（现代设备都是 arm64），
+再把 `libnsh.so` 用 deflate 压进 APK，并把 manifest 的 `extractNativeLibs` 改成 `true`
+让系统解压一次。冷启动时间和未压缩版持平。
 
 需要 NSH 0.5.1 或更新。0.5.0 起 web 构建只链接用到的 `nsh/base` core、crypto 和 URL
 （[#1039](https://github.com/longbridge/nsh/issues/1039) 的后续，[#1220](https://github.com/longbridge/nsh/pull/1220)），
