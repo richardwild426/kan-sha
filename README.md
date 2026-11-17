@@ -48,12 +48,25 @@ Android 那边引擎是编进 apk 的，没有下载成本，所以用 NSH。
 cd nsh
 nsh test                                     # headless 测试
 ./package-android.sh                         # .nsh/out/看啥.apk（21 MB）
+./package-android.sh --trim                  # 同上，再现场编译裁剪版运行时（13 MB）
 nsh package App.tsx --target android --run   # 装到已连接的设备/启动，不裁剪（81 MB）
 ```
 
 `package-android.sh` 把默认的 81 MB 压到 21 MB：只打 `arm64-v8a`（现代设备都是 arm64），
 再把 `libnsh.so` 用 deflate 压进 APK，并把 manifest 的 `extractNativeLibs` 改成 `true`
 让系统解压一次。冷启动时间和未压缩版持平。
+
+`--trim` 再省 8 MB，到 13 MB：按 app 实际 import 的模块现场编译一个只含 JS 引擎的
+运行时（[NSH #1878](https://github.com/longbridge/nsh/issues/1878) / #2060），
+把 `shader`、`editor`、`highlight`、`math`、`plot`、`term`、`emoji-picker`、`svg`、
+`zlib`、`crypto`、`websocket`、`updater` 全部排除。需要 cargo、Rust 的
+`aarch64-linux-android` target 和 Android NDK（首次编译约 2 分钟）；失败会自动退回
+预编译运行时，不影响出包。
+
+> 为什么不是 `nsh package` 自己裁：裁剪逻辑（`native_features.rs`）只存在于 0.5.1
+> 之后的 `main`（11-15 合入），而它去 crates.io 取 0.5.0 的 crate 时，模板会要求
+> iOS/Android crate 上还不存在的 `svg`/`net`/`websocket`/`updater` feature，直接
+> 解析失败并静默回退。脚本绕开这一点：只保留 android 成员、只要求 `js`。
 
 需要 NSH 0.5.1 或更新。0.5.0 起 web 构建只链接用到的 `nsh/base` core、crypto 和 URL
 （[#1039](https://github.com/longbridge/nsh/issues/1039) 的后续，[#1220](https://github.com/longbridge/nsh/pull/1220)），
