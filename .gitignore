@@ -8,3 +8,6 @@ reply.json
 sub.json
 view.json
 ep.json
+
+# NSH build output
+nsh/.nsh/
