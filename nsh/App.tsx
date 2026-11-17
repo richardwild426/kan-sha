@@ -159,9 +159,10 @@ function App() {
   };
 
   // iPad 屏大，卡片放宽、字号放大，并且整体居中，不然全挤在底部一条。
+  // 11 寸 iPad 是 1032pt 宽，卡片给到 860pt 才算有存在感。
   const PAD = platform.idiom === "pad";
-  const W = PAD ? 720 : 560;
-  const COVER_W = PAD ? 168 : 116;
+  const W = PAD ? 860 : 560;
+  const COVER_W = PAD ? 240 : 116;
 
   keymap.bind("space", () => next());
   keymap.bind("enter", () => go());
