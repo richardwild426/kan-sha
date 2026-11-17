@@ -6,22 +6,30 @@
 
 ## 结构
 
+网站和 Android app 是两份独立的实现，因为首屏预算完全不同：
+
 ```
-nsh/                   # 源码：Native Shell，一份代码出 web / Android
+public/                # 网站：手写单文件，首屏 ~124 KB
+  index.html           # HTML + CSS + JS + 数据全在这一个文件里
+  assets/covers/*.webp # 33 张竖版海报，480×640
+  assets/bgs/*.webp    # 3 张横版大图（只有这 3 部有）
+nsh/                   # Android app：Native Shell
   App.tsx              # 全部界面与逻辑
   App.test.tsx         # headless 测试
   movies.json          # 33 部影片数据（从 movies_detail.json 生成）
-  assets/              # 33 张海报 + 3 张横图（webp）
+  assets/              # 同上的图
   nsh.json             # 应用 id、名称、外观
-public/                # 部署用：nsh package --target web 的产物，不要手改
-legacy/                # 最早那版手写单文件网页，留档（已不在线上）
 wrangler.toml          # Cloudflare Workers + 静态资源
 *.py                   # 一次性数据采集脚本（解析置顶评论、解析短链、拉 PGC 元数据）
 movies_detail.json     # 归一化后的 33 部影片元数据
 links.json             # b23.tv 短链 → bangumi 播放页的映射
 ```
 
-改界面改 `nsh/App.tsx`，然后重新打包、`cp` 进 `public/`。`nsh/` 需要 [Native Shell](https://nsh.dev) 的 `nsh` 命令。
+**为什么不合成一份**：NSH 的 web 产物要带 4.2 MB 的渲染引擎 wasm（压缩后 1 MB），
+首屏从 124 KB 涨到 1 MB 以上。网页版只有几屏静态内容，不值得为它付这个代价；
+Android 那边引擎是编进 apk 的，没有下载成本，所以用 NSH。
+
+两边改的时候注意保持视觉和数据一致（`movies.json` 与 `index.html` 里的 `RAW` 数组同源）。
 
 ## 行为
 
@@ -32,18 +40,19 @@ links.json             # b23.tv 短链 → bangumi 播放页的映射
 - **触屏**：左右滑动换一部。
 - **背景**：有横版图用横版图，没有就用海报模糊放大铺底。
 
-## Native Shell 版
+## Android app
 
-`nsh/` 是用 [Native Shell](https://nsh.dev) 重写的同一套界面，一份代码出 web 和 Android。
+`nsh/` 是用 [Native Shell](https://nsh.dev) 写的 Android 版，同一套界面和数据。
 
 ```sh
 cd nsh
-nsh run App.tsx --target web                 # 本地开发服务器
-nsh package --target web                     # 静态站点，产物在 .nsh/out/看啥/
-
+nsh test                                     # headless 测试
 nsh package App.tsx --target android         # .nsh/out/看啥.apk
 nsh package App.tsx --target android --run   # 装到已连接的设备/模拟器并启动
 ```
+
+（也能 `nsh package --target web` 出网页版，但引擎 wasm 会让首屏涨到 1 MB 以上，
+所以网站不用它。）
 
 Android 构建需要 JDK 和 Android SDK：
 
@@ -61,14 +70,11 @@ export PATH="$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$PATH"
 Cloudflare Workers 静态资源，`wrangler.toml` 里声明自定义域名。
 
 ```bash
-cd nsh && nsh package --target web --out dist
-cd .. && rm -rf public/* && cp -R "nsh/dist/看啥/." public/
-cp nsh/_headers public/
 wrangler deploy
 ```
 
-`public/_headers` 给 Cloudflare 的规则：wasm 以 `application/wasm` 下发（浏览器才能边下边编译），
-带内容哈希的文件一年 immutable，`index.html` 每次校验。
+改完 `public/` 重新 deploy 即可，秒级生效。`public/_headers` 里 `index.html` 每次校验、
+`assets/` 缓存一周（图片文件名不带哈希，所以不能 immutable）。
 
 ## 素材来源
 
