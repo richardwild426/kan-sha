@@ -3,5 +3,16 @@
   "id": "top.zvector.kansha",
   "version": "1.0.0",
   "build": 1,
-  "appearance": "dark"
+  "appearance": "dark",
+  "statusBar": { "foreground": "light", "hidden": false },
+  "icon": "icon.png",
+  "capabilities": {
+    "statusBar": true,
+    "openUrl": { "schemes": ["https"] }
+  },
+  "ios": {
+    "infoPlist": {
+      "MinimumOSVersion": "15.0"
+    }
+  }
 }

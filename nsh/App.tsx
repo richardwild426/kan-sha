@@ -158,6 +158,11 @@ function App() {
     if (e.translation.x < -52 && Math.abs(e.translation.x) > Math.abs(e.translation.y)) next();
   };
 
+  // iPad 屏大，卡片放宽、字号放大，并且整体居中，不然全挤在底部一条。
+  const PAD = platform.idiom === "pad";
+  const W = PAD ? 720 : 560;
+  const COVER_W = PAD ? 168 : 116;
+
   keymap.bind("space", () => next());
   keymap.bind("enter", () => go());
 
@@ -206,58 +211,58 @@ function App() {
           </View>
         </View>
       ) : (
-        <View class="flex-1 justify-end items-center px-5" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 22px)" }}>
-          <View style={{ width: "100%", maxWidth: 560 }}>
+        <View class="flex-1 justify-end items-center px-5" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 22px)", ...(PAD ? { justifyContent: "center", paddingBottom: 40 } : {}) }}>
+          <View style={{ width: "100%", maxWidth: W }}>
           <View
             testID="ticket"
             panActivation={{ activeOffsetX: 18, failOffsetY: 26 }}
             onPanEnd={onSwipeEnd}
             class="flex-row rounded-2xl bg-[rgba(14,14,18,0.86)] border border-[rgba(255,255,255,0.09)] overflow-hidden">
-            <View style={{ width: 116, aspectRatio: 0.75 }}>
+            <View style={{ width: COVER_W, aspectRatio: 0.75 }}>
               <Image src={COVERS[mv().i]} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             </View>
             <View style={{ width: 1, backgroundColor: "rgba(255,255,255,0.08)" }} />
-            <View class="flex-1 py-4 pr-4 gap-[7px]" style={{ paddingLeft: 14 }}>
-              <Text class="text-[19px] font-semibold text-[#F2EFE8]" style={{ numberOfLines: 2 }}>{mv().t}</Text>
-              <Text class="text-[11.5px] text-[#8A8A93]">{mv().y} · {mv().d} 分钟 · {mv().g}</Text>
-              <Text class="text-[12.5px] leading-5 text-[#C9C6BF]" style={{ numberOfLines: 3 }}>{mv().r}</Text>
+            <View class="flex-1 py-4 pr-4 gap-[7px]" style={{ paddingLeft: PAD ? 20 : 14 }}>
+              <Text class="text-[19px] font-semibold text-[#F2EFE8]" style={{ numberOfLines: 2, ...(PAD ? { fontSize: 26 } : {}) }}>{mv().t}</Text>
+              <Text class="text-[11.5px] text-[#8A8A93]" style={PAD ? { fontSize: 14 } : undefined}>{mv().y} · {mv().d} 分钟 · {mv().g}</Text>
+              <Text class="text-[12.5px] leading-5 text-[#C9C6BF]" style={{ numberOfLines: PAD ? 4 : 3, ...(PAD ? { fontSize: 15, lineHeight: 24 } : {}) }}>{mv().r}</Text>
               <View class="flex-row items-center gap-[6px]">
-                <Text class="text-[12px] text-[#E8C07A] font-semibold">{mv().s ? "B站 " + mv().s.toFixed(1) : "暂无评分"}</Text>
+                <Text class="text-[12px] text-[#E8C07A] font-semibold" style={PAD ? { fontSize: 14 } : undefined}>{mv().s ? "B站 " + mv().s.toFixed(1) : "暂无评分"}</Text>
                 {mv().badge ? (
                   <View class="px-[5px] py-[1px] rounded-[3px] border border-[rgba(232,192,122,0.4)]">
-                    <Text class="text-[9px] text-[#E8C07A]">{mv().badge}</Text>
+                    <Text class="text-[9px] text-[#E8C07A]" style={PAD ? { fontSize: 11 } : undefined}>{mv().badge}</Text>
                   </View>
                 ) : null}
               </View>
             </View>
           </View>
 
-          </View>
-
-          <View class="flex-row gap-[10px] mt-3" style={{ width: "100%", maxWidth: 560 }}>
+          <View class="flex-row gap-[10px] mt-3" style={{ width: "100%", maxWidth: W }}>
             <View
               onPress={go}
               role="button"
-              class="flex-1 items-center justify-center rounded-xl py-[13px] active:opacity-80"
-              style={{ backgroundColor: GOLD }}
+              class="flex-1 items-center justify-center rounded-xl active:opacity-80"
+              style={{ backgroundColor: GOLD, paddingTop: PAD ? 18 : 13, paddingBottom: PAD ? 18 : 13 }}
             >
-              <Text class="text-[14.5px] font-semibold" style={{ color: INK }}>就看这个</Text>
+              <Text class="text-[14.5px] font-semibold" style={{ color: INK, ...(PAD ? { fontSize: 17 } : {}) }}>就看这个</Text>
             </View>
             <View
               onPress={next}
               role="button"
-              class="flex-1 items-center justify-center rounded-xl py-[13px] border border-[rgba(255,255,255,0.16)] active:bg-[rgba(255,255,255,0.07)]"
+              class="flex-1 items-center justify-center rounded-xl border border-[rgba(255,255,255,0.16)] active:bg-[rgba(255,255,255,0.07)]"
+              style={{ paddingTop: PAD ? 18 : 13, paddingBottom: PAD ? 18 : 13 }}
             >
-              <Text class="text-[14.5px] text-[#E4E1DA]">换一个</Text>
+              <Text class="text-[14.5px] text-[#E4E1DA]" style={PAD ? { fontSize: 17 } : undefined}>换一个</Text>
             </View>
           </View>
 
-          <If when={platform.idiom !== "phone"}>
-            <Text class="text-[10.5px] text-[#5C5C64] text-center mt-3" style={{ width: "100%", maxWidth: 560 }}>空格 换一部 · 回车 就去看</Text>
+          <If when={platform.desktop}>
+            <Text class="text-[10.5px] text-[#5C5C64] text-center mt-3" style={{ width: "100%", maxWidth: W }}>空格 换一部 · 回车 就去看</Text>
           </If>
-          <If when={platform.idiom === "phone"}>
-            <Text class="text-[10.5px] text-[#5C5C64] text-center mt-3" style={{ width: "100%", maxWidth: 560 }}>左右滑动换一部</Text>
+          <If when={!platform.desktop}>
+            <Text class="text-[10.5px] text-[#5C5C64] text-center mt-3" style={{ width: "100%", maxWidth: W }}>左右滑动换一部</Text>
           </If>
+          </View>
         </View>
       )}
     </View>
