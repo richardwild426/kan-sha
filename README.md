@@ -64,9 +64,9 @@ nsh package App.tsx --target android --run   # 装到已连接的设备/启动�
 预编译运行时，不影响出包。
 
 > 为什么不是 `nsh package` 自己裁：裁剪逻辑（`native_features.rs`）只存在于 0.5.1
-> 之后的 `main`（11-15 合入），而它去 crates.io 取 0.5.0 的 crate 时，模板会要求
-> iOS/Android crate 上还不存在的 `svg`/`net`/`websocket`/`updater` feature，直接
-> 解析失败并静默回退。脚本绕开这一点：只保留 android 成员、只要求 `js`。
+> 之后的 `main`（11-15 合入）。0.5.1 不生成 cargo 工作区，所以脚本自己带了一份
+> （`runtime/`），并把它改成只保留 android 成员、只要求 `js` —— main 生成的模板会要求
+> crates.io 上还不存在的 `svg`/`net`/`websocket`/`updater` feature，直接解析失败。
 
 需要 NSH 0.5.1 或更新。0.5.0 起 web 构建只链接用到的 `nsh/base` core、crypto 和 URL
 （[#1039](https://github.com/longbridge/nsh/issues/1039) 的后续，[#1220](https://github.com/longbridge/nsh/pull/1220)），
@@ -88,25 +88,35 @@ export PATH="$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$PATH"
 
 ## 发版
 
-APK 由 GitHub Actions 出，挂在 [Releases](https://github.com/richardwild426/kan-sha/releases) 上。
+APK 由 GitHub Actions 出，挂在 [Releases](https://github.com/richardwild426/kan-sha) 上。
 
 ```sh
-git tag v1.0.0
-git push origin v1.0.0
+git tag v1.0.1
+git push origin v1.0.1
 ```
 
-打 tag 后 `.github/workflows/release.yml` 会：装 NSH → `nsh test` → 用 release keystore
-签名打包 → 建 Release 并上传 `看啥-1.0.0-arm64.apk`。
+打 tag 后 `.github/workflows/release.yml` 会：装 NSH 和 Android 工具链 → `nsh test` →
+用 release keystore 签名打包 → 建 Release 并上传 `kansha-1.0.1-arm64.apk`（12.9 MiB）。
 
-- **版本号**取自 tag（`v1.0.0` → `versionName=1.0.0`），`versionCode` 用 `github.run_number` 递增。
-  手机靠 `versionCode` 判断能不能覆盖安装，所以每次都涨。
-- 也可以在 Actions 页面手动 `Run workflow`，填版本号，但不会建 Release（只留 artifact）。
-- **签名证书不放在仓库里**，在 Secrets：`ANDROID_KEYSTORE_BASE64`、`ANDROID_KEYSTORE_PASSWORD`、
-  `ANDROID_KEY_ALIAS`。证书丢了就再也无法覆盖升级，只能让用户卸载重装 —— 务必备份。
+- **版本号**取自 tag（`v1.0.1` → `versionName=1.0.1`），`versionCode` 用 `github.run_number`
+  递增 —— 手机靠它判断能不能覆盖安装，所以必须每次都涨。
+- 也能在 Actions 页面手动 `Run workflow` 填版本号，但不建 Release，只留 artifact。
+- **签名证书不在仓库里**，放在 Secrets：`ANDROID_KEYSTORE_BASE64`、
+  `ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS`。证书丢了就没法覆盖升级，只能让用户
+  卸载重装 —— 务必备份。
+- 附件名用 ASCII：`action-gh-release` 会把中文文件名吃掉（`看啥-1.0.0-arm64.apk` 变成
+  `-1.0.0-arm64.apk`），所以发布资产叫 `kansha-*`。
 
-> CI 出的是 **21 MB**（预编译运行时）。13 MB 的裁剪版需要 NSH > 0.5.1 现场编译运行时，
-> 而 0.5.1 不生成 `.nsh/rust`，所以 CI 拿不到更小的包。NSH 发布带裁剪逻辑的正式版后，
-> 把 workflow 里 `install.sh` 改成定点版本就自动变小。
+### 为什么 CI 能出 13 MB
+
+`nsh/runtime/` 存了一份 cargo 工作区（nsh 生成的 crate 骨架，pin `=0.5.0` 的 crate）。
+0.5.1 自己不会写这个目录，脚本用这份骨架现场交叉编译一个只含 JS 引擎的运行时，
+替换掉预编译的 `libnsh.so`（47 MB → 27 MB，deflate 后 13 MB）。
+
+> **必须用正式版 NSH。** nightly 的 `classes.dex` 已经用新协议，而 crates.io 上的 crate
+> 还是旧的，编出来的 `.so` 串不上，装上去一启动就
+> `ArrayIndexOutOfBoundsException: length=13; index=38`（`Mounter.string`）。
+> 脚本检测到预发布版本会直接跳过裁剪，避免打出这种坏包。
 
 ## 部署
 
