@@ -1,0 +1,10 @@
+name = "movie"
+compatibility_date = "2026-08-11"
+workers_dev = true
+
+[assets]
+directory = "public"
+
+[[routes]]
+pattern = "movie.zvector.top"
+custom_domain = true
