@@ -319,7 +319,8 @@ function byId(n){
 let cur = null;
 const posterImg = $('posterImg');
 const bgA = $('bgA'), bgB = $('bgB');
-let bgFront = bgA, bgBack = bgB, bgCur = '';
+const bgs = [bgA, bgB];
+let bgFront = 0, bgCur = '', bgToken = 0;
 
 function preload(m){
   new Image().src = m.cover;
@@ -335,36 +336,38 @@ function render(m){
   cur = m;
   const src = m.bg;
 
+  // 两张图来回倒，但状态只认 token：新图载入前先藏起来（避免露出上一部），
+  // 载入后盖到最上层淡入；收尾时把所有「不是前台」的 on 全摘掉，
+  // 不再用「谁是谁」的推断，快速连点也不会留在错的那张上。
   if (bgCur !== src){
     bgCur = src;
-    const net = bgBack;
+    const token = ++bgToken;
+    const idx = 1 - bgFront;
+    const net = bgs[idx], old = bgs[bgFront];
+
+    net.onload = net.onerror = null;
     net.className = '';
-    const fallback = function(){
-      net.onload = net.onerror = null;
-      if (bgCur !== src) return;
-      // 剧照挂了就先糊一张海报顶住，总比黑屏强
+    net.style.zIndex = '2';
+    old.style.zIndex = '1';
+
+    const commit = function(blurred){
+      if (bgToken !== token) return;
+      net.className = blurred ? 'blurred on' : 'on';
+      bgFront = idx;
+      setTimeout(function(){
+        for (let i = 0; i < 2; i++) if (i !== bgFront) bgs[i].classList.remove('on');
+      }, 700);
+    };
+
+    net.onload = function(){ commit(false); };
+    // 剧照挂了就先糊一张海报顶住，总比黑屏强
+    net.onerror = function(){
+      if (bgToken !== token) return;
       const poster = new Image();
-      poster.onload = function(){
-        if (bgCur !== src) return;
-        net.className = 'blurred';
-        net.classList.add('on');
-        const old = bgFront;
-        bgFront = net; bgBack = old;
-        setTimeout(function(){ if (old !== bgFront) old.classList.remove('on'); }, 660);
-      };
+      poster.onload = function(){ if (bgToken === token) commit(true); };
       poster.src = m.cover;
     };
-    net.onload = function(){
-      net.onload = net.onerror = null;
-      if (bgCur !== src) return;
-      net.classList.add('on');
-      const old = bgFront;
-      bgFront = net; bgBack = old;
-      setTimeout(function(){ if (old !== bgFront) old.classList.remove('on'); }, 660);
-    };
-    net.onerror = fallback;
     net.src = src;
-    if (net.complete && !net.naturalWidth) fallback();
   }
 
   if (posterImg.getAttribute('data-src') !== m.cover){
