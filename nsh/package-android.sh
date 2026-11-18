@@ -152,6 +152,72 @@ for off in range(8, len(d) - 40, 4):
 sys.exit('extractNativeLibs 属性没找到')
 PY
 
+echo "→ 修图标：补 adaptive icon（NSH 只出一张 192px legacy PNG）"
+# 不补的话 Android 8+ 会把它塞进圆形遮罩再垫一块系统色底板：
+# 实测金色标只剩 68/247 px，四周一圈灰，就是「丑」的来源。
+# 做法：用 aapt2 单独 link 一份只含图标资源的 apk，再把它里面的
+# resources.arsc 和 res/ 拷回主包 —— manifest 与代码保持 NSH 原样。
+ICON_SRC="$(dirname "$0")/icon.png"
+if [ -f "$ICON_SRC" ]; then
+  ICON_TMP="$tmp/icon"
+  mkdir -p "$ICON_TMP"
+  # 有 Pillow 的 python 优先；没有就借 uv 临时装一个（CI 上两者都不一定在）。
+  # 解析出来的层是仓库里的文件，打包完就删，不进版本库。
+  GEN="$(dirname "$0")/icon/make_android.py"
+  run_gen() {
+    if python3 -c 'import PIL' >/dev/null 2>&1; then
+      python3 "$GEN" "$ICON_TMP"
+    elif command -v uv >/dev/null 2>&1; then
+      uv run --with pillow python "$GEN" "$ICON_TMP"
+    else
+      return 1
+    fi
+  }
+  if run_gen >"$ICON_TMP/gen.log" 2>&1; then
+    cat > "$ICON_TMP/AndroidManifest.xml" <<'XML'
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="top.zvector.kansha">
+  <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="35" />
+  <application android:icon="@mipmap/ic_launcher" />
+</manifest>
+XML
+    # NSH 编出来的 manifest 里 application:icon 是硬写死的资源 ID
+    # 0x7f010000。新资源表如果让 drawable 抢占 01 类型，那个 ID 就指到
+    # 背景层去了（图标变成一块纯黑）。用 --stable-ids 把 mipmap/ic_launcher
+    # 钉回 0x7f010000，drawable 排到 02 之后。
+    printf 'top.zvector.kansha:mipmap/ic_launcher = 0x7f010000\ntop.zvector.kansha:drawable/ic_launcher_background = 0x7f020000\ntop.zvector.kansha:drawable/ic_launcher_foreground = 0x7f020001\n' \
+      > "$ICON_TMP/stable-ids.txt"
+    # aapt2 link 只吃编译过的 .flat，先整个 res/ 编一遍。
+    if "$BT/aapt2" compile --dir "$ICON_TMP/res" -o "$ICON_TMP/compiled.zip" \
+         >"$ICON_TMP/compile.log" 2>&1 \
+       && "$BT/aapt2" link -o "$ICON_TMP/icons.apk" \
+         -I "$ANDROID_HOME/platforms/android-35/android.jar" \
+         --manifest "$ICON_TMP/AndroidManifest.xml" \
+         --min-sdk-version 26 --target-sdk-version 35 \
+         --stable-ids "$ICON_TMP/stable-ids.txt" \
+         "$ICON_TMP/compiled.zip" \
+         >"$ICON_TMP/link.log" 2>&1; then
+      # 拆出资源表与 res/，覆盖主包里那份单图标的旧资源。
+      mkdir -p "$ICON_TMP/out"
+      (cd "$ICON_TMP/out" && unzip -qo "$ICON_TMP/icons.apk" 'resources.arsc' 'res/*')
+      rm -rf "$tmp/x/res"
+      cp "$ICON_TMP/out/resources.arsc" "$tmp/x/resources.arsc"
+      cp -R "$ICON_TMP/out/res" "$tmp/x/res"
+      layers=$(find "$tmp/x/res" -name 'ic_launcher_foreground.png' | wc -l | tr -d ' ')
+      echo "  ok: adaptive icon 已注入（$layers 档前景层）"
+    else
+      echo "  warn: aapt2 link 失败，保留原图标"
+      head -5 "$ICON_TMP/link.log"
+    fi
+  else
+    echo "  warn: 生成图标资源失败，保留原图标"
+    head -5 "$ICON_TMP/gen.log"
+  fi
+else
+  echo "  warn: 没找到 icon.png，保留原图标"
+fi
+
 echo "→ 重打包：.so deflate，resources.arsc 必须 Stored"
 python3 - "$tmp/x" "$tmp/packed.apk" <<'PY'
 import os, sys, zipfile

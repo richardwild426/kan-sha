@@ -12,13 +12,14 @@
 public/                # 网站：手写单文件，首屏 ~124 KB
   index.html           # HTML + CSS + JS + 数据全在这一个文件里
   assets/covers/*.webp # 33 张竖版海报，480×640
-  assets/bgs/*.webp    # 3 张横版大图（只有这 3 部有）
+  assets/bgs/*.webp    # 33 张 16:10 横版剧照，铺背景用
 nsh/                   # Android + iOS app：Native Shell
   App.tsx              # 全部界面与逻辑
   App.test.tsx         # headless 测试
   movies.json          # 33 部影片数据（从 movies_detail.json 生成）
   assets/              # 同上的图
-  icon.png             # 1024×1024 应用图标
+  icon.png             # 1024×1024 应用图标（iOS 源图，也作 Android 旧版回落）
+  icon/                # 图标生成脚本，见「图标」一节
   nsh.json             # 应用 id、名称、外观、权限
   package-android.sh   # 出精简 APK
   package-ios.sh       # 出 ipa（iPhone + iPad）
@@ -111,6 +112,29 @@ export PATH="$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$PATH"
 
 iOS 的权限在 `nsh.json` 的 `capabilities` 里收窄了：只给 `openUrl`（https）和 `statusBar`。
 不写 `capabilities` 的话 NSH 会按默认给你塞麦克风和语音识别的权限描述 —— 这个 app 一个都不用。
+
+### 图标
+
+标志是**金色圆盘 + 深色播放键**：一个「今晚放什么」的按钮。三端同形。
+
+```
+uv run --with pillow python nsh/icon/make_icons.py            # 出 nsh/icon.png（1024，iOS 源图）
+uv run --with pillow python nsh/icon/make_icons.py --all DIR  # 顺带出 ticket / ring 两个备选
+```
+
+**Android 要单独补一层。** `nsh package` 只塞一张 192px 的旧式 PNG，Android 8+
+会把它缩进圆形遮罩再垫一块系统色底板 —— 实测金色标只剩 68px，四周一圈灰，
+就是「图标很丑」的来源。所以 `package-android.sh` 在重打包时用
+`icon/make_android.py` 重画一套自适应图标，aapt2 重新 link 后把 `resources.arsc`
+和 `res/` 覆盖回主包：
+
+- 金色放**背景层**、铺满 108dp。外形交给 launcher 的遮罩决定（Pixel 是圆、
+  三星是方圆），这样方形的角不会被裁掉。
+- 只有播放键在**前景层**，控制在 66dp 安全区内，任何遮罩都裁不到。
+- `--stable-ids` 把 `mipmap/ic_launcher` 钉死在 `0x7f010000`：NSH 编出来的
+  manifest 里 icon 是硬写死的资源 ID，不钉的话会指到背景层去（图标变一块纯黑）。
+
+实测（Pixel 模拟器，247px 格子）：金色面积占 6.6% → 23.8%，周围灰板消失。
 
 ## 发版
 

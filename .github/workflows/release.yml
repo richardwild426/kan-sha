@@ -58,6 +58,11 @@ jobs:
         working-directory: nsh
         run: nsh test
 
+      # package-android.sh 会重画一套 adaptive icon 资源（NSH 只给一张
+      # 192px legacy PNG，Android 8+ 那边会被缩成小图塞进圆里）。
+      - name: 装 Pillow
+        run: pip install --quiet pillow
+
       - name: 还原发布签名
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -86,6 +91,11 @@ jobs:
           BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
           "$BT/apksigner" verify --print-certs "dist/kansha-${APP_VERSION}-arm64.apk" | head -4
           "$BT/aapt2" dump badging "dist/kansha-${APP_VERSION}-arm64.apk" | grep -E "^(package|application-label)"
+          # adaptive icon 必须在，否则 Android 8+ 会把图标缩成小图垫灰板
+          "$BT/aapt2" dump resources "dist/kansha-${APP_VERSION}-arm64.apk" \
+            | grep -q "mipmap-anydpi-v26/ic_launcher.xml" \
+            || { echo "adaptive icon 缺失"; exit 1; }
+          echo "adaptive icon ok"
 
       - uses: actions/upload-artifact@v4
         with:
