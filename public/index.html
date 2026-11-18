@@ -28,14 +28,15 @@ body{
 /* ---------- backdrop ---------- */
 .backdrop{position:absolute;inset:0;z-index:0;overflow:hidden;background:#08080A}
 .backdrop img{
-  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 24%;
+  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 32%;
   opacity:0;transition:opacity .62s ease;
 }
 .backdrop img.on{opacity:1}
+/* 没有横向剧照时的兜底：海报糊一下顶上，只在图片加载失败时才用到 */
 .backdrop img.blurred{filter:blur(52px) saturate(1.2) brightness(.62);transform:scale(1.55);object-position:center}
-.veil{position:absolute;inset:0;background:rgba(10,10,12,.42)}
+.veil{position:absolute;inset:0;background:rgba(10,10,12,.34)}
 .scrim-t{position:absolute;inset:0 0 auto 0;height:26%;background:linear-gradient(180deg,#08080A 0%,rgba(8,8,10,0) 100%)}
-.scrim-b{position:absolute;inset:auto 0 0 0;height:70%;background:linear-gradient(0deg,#07070A 4%,rgba(7,7,10,.88) 38%,rgba(7,7,10,.42) 68%,rgba(7,7,10,0) 100%)}
+.scrim-b{position:absolute;inset:auto 0 0 0;height:62%;background:linear-gradient(0deg,#07070A 0%,rgba(7,7,10,.9) 30%,rgba(7,7,10,.5) 62%,rgba(7,7,10,0) 100%)}
 
 /* ---------- header ---------- */
 .top{
@@ -284,7 +285,7 @@ body{
 <script>
 const RAW = [[1,"阳光小美女","2023",102,"喜剧 / 剧情",9.7,464,"会员","https://www.bilibili.com/bangumi/play/ep790571","全家都是失败者，推着破面包车去参加比赛。笑得一塌糊涂，最后又有点酸",1,0],[2,"晒后假日","2023",100,"剧情",9.6,255,"会员","https://www.bilibili.com/bangumi/play/ss45798","一场土耳其旅行，很多年后才看懂父亲当时的沉默",2,0],[3,"伯德小姐","2024",93,"剧情 / 家庭",9.3,197,"会员","https://www.bilibili.com/bangumi/play/ss46655","和妈妈吵完架就想离家，真走了又舍不得那辆车",3,0],[4,"小妇人","2024",135,"剧情 / 爱情",9.7,4511,"付费","https://www.bilibili.com/bangumi/play/ss47234","四姐妹各走各的路，乔劝你要自己说了算",4,0],[5,"布鲁克林","2022",106,"剧情 / 爱情",9.0,171,"会员","https://www.bilibili.com/bangumi/play/ss41878","小镇姑娘去纽约，乡愁和选择一起到站",5,0],[6,"逃脱","2026",118,"剧情",0,0,"付费","https://www.bilibili.com/bangumi/play/ss273042","回到童年的苏格兰小岛，把散掉的自己一片片捡回来",6,0],[7,"夏日细语","2023",95,"剧情",9.7,165,"会员","https://www.bilibili.com/bangumi/play/ss45799","被送去亲戚家过个夏天，安静地把一个孩子救了回来",7,0],[8,"四月物语","2021",67,"爱情",9.6,2492,"会员","https://www.bilibili.com/bangumi/play/ss39284","67 分钟，一场暗恋，一场樱花雨。心动成本最低的一部",8,0],[9,"花与爱丽丝","2021",135,"剧情 / 喜剧",9.6,1718,"会员","https://www.bilibili.com/bangumi/play/ss39286","两个女孩和一个男生，谁都没做错，谁都心疼",9,0],[10,"情书","2021",117,"剧情 / 爱情",9.8,16824,"会员","https://www.bilibili.com/bangumi/play/ss39429","寄往天国的一封信，回信的人是来代替说再见的",10,0],[11,"百万元与苦虫女","2024",121,"",9.2,148,"会员","https://www.bilibili.com/bangumi/play/ss48710","存够一百万就搬出去，一边打工一边把自己活明白",11,0],[12,"蜂蜜与四叶草","2022",116,"爱情 / 漫画改",9.4,307,"会员","https://www.bilibili.com/bangumi/play/ss41213","一群美术生，才华和喜欢的人都藏不住",12,0],[13,"蓦然回首","2025",75,"剧情 / 动画",9.8,4111,"会员","https://www.bilibili.com/bangumi/play/ss68473","75 分钟就讲完了一辈子。画画的人看完会想打开画布",13,13],[14,"去唱卡拉OK吧！","2025",108,"喜剧",9.8,796,"会员","https://www.bilibili.com/bangumi/play/ep1821134","黑帮大哥找初中生教唱歌，荒诞得理直气壮",14,0],[15,"下妻物语","2021",102,"喜剧",9.7,1717,"会员","https://www.bilibili.com/bangumi/play/ep376437","洛可可裙子配重型摩托，土味和华丽一起炸",15,0],[16,"春天的故事","2021",107,"剧情 / 喜剧",9.1,334,"会员","https://www.bilibili.com/bangumi/play/ss37998","侯麦里最暖和的一部，一顿饭里的项链和猜疑",16,0],[17,"夏天的故事","2021",114,"剧情 / 爱情",9.3,188,"会员","https://www.bilibili.com/bangumi/play/ss38002","一个男生和三个女孩，海边，全是犹豫不决",17,0],[18,"秋天的故事","2021",111,"剧情 / 爱情",9.3,160,"会员","https://www.bilibili.com/bangumi/play/ss38003","葡萄园里偷偷登的征婚广告，好心办出的妙事",18,0],[19,"冬天的故事","2021",114,"剧情 / 爱情",9.0,145,"会员","https://www.bilibili.com/bangumi/play/ep385380","地址写错就走散五年，她还在等那个对的人",19,0],[20,"双姝奇缘","2021",95,"剧情 / 喜剧",9.6,278,"会员","https://www.bilibili.com/bangumi/play/ep387153","城里姑娘和乡下姑娘，两段话就成了一生的朋友",20,0],[21,"绿光","2021",99,"剧情 / 爱情",0,0,"会员","https://www.bilibili.com/bangumi/play/ss39399","没人陪的夏天，她只想等到那束绿光才肯回头",21,0],[22,"荒野生存","2018",146,"剧情 / 传记",9.6,1114,"会员","https://www.bilibili.com/bangumi/play/ss25979","二十多岁抛下一切去荒野。有人看完真辞了职",22,0],[23,"时时刻刻","2021",110,"剧情 / 传记",9.7,565,"会员","https://www.bilibili.com/bangumi/play/ss42324","三个时代的三个女人，被同一本小说串起来",23,0],[24,"泳者之心","2024",129,"",9.7,680,"会员","https://www.bilibili.com/bangumi/play/ss48504","第一个游过英吉利海峡的女人，靠的不是天赋，是死不认输",24,0],[25,"还有明天","2025",118,"剧情",9.7,1172,"会员","https://www.bilibili.com/bangumi/play/ss89626","战后罗马的家庭主妇，把最沉默的一天过成反击",25,0],[26,"与玛格丽特的午后","2022",82,"喜剧",9.9,2546,"会员","https://www.bilibili.com/bangumi/play/ss42015","82 分钟。看完像被人轻轻拍了下背",26,0],[27,"机器人之梦","2024",102,"剧情 / 动画",9.8,1783,"会员","https://www.bilibili.com/bangumi/play/ep1112126","一句台词都没有，却能把你哭得稀里哗啦",27,0],[28,"巴黎夏日","2026",78,"",0,0,"会员","https://www.bilibili.com/bangumi/play/ep3092456","奥运会期间的巴黎，一个 30 岁的女人在人群里找自己",28,0],[29,"诺丁山","2023",124,"喜剧 / 爱情",9.3,294,"会员","https://www.bilibili.com/bangumi/play/ep747311","大明星进了小书店，最标准的爱情喜剧，也最治失眠",29,0],[30,"五月之恋","2023",107,"爱情",9.6,441,"会员","https://www.bilibili.com/bangumi/play/ss44576","五月天、网络、台北和哈尔滨，隔着屏幕的心动",30,0],[31,"天空的另一面","2026",86,"",0,0,"会员","https://www.bilibili.com/bangumi/play/ep3066720","八十岁被送去隔离，她划船跑了。荒诞得很认真",31,0],[32,"河狸变身计划","2026",105,"科幻 / 喜剧",4.3,2433,"付费","https://www.bilibili.com/bangumi/play/ss213047","钻进河狸的身体里搞野外探险，脑子放假的那种爽",32,32],[33,"挽救计划","2026",157,"剧情 / 科幻",9.8,10840,"会员","https://www.bilibili.com/bangumi/play/ep5389730","157 分钟，人类最后一个老师和一个外星搭子在太空救地球",33,33]];
 const MOVIES = RAW.map(function(r){
-  return {i:r[0], t:r[1], y:r[2], d:r[3], g:r[4], s:r[5], v:r[6], badge:r[7], url:r[8], r:r[9], bg:r[11] ? 'assets/bgs/' + r[11] + '.webp' : '', cover:'assets/covers/' + r[10] + '.webp'};
+  return {i:r[0], t:r[1], y:r[2], d:r[3], g:r[4], s:r[5], v:r[6], badge:r[7], url:r[8], r:r[9], bg:'assets/bgs/' + r[0] + '.webp', cover:'assets/covers/' + r[10] + '.webp'};
 });
 
 const KEY = 'kansha.watched.v1';
@@ -332,22 +333,38 @@ function fmtVotes(v){
 
 function render(m){
   cur = m;
-  const src = m.bg || m.cover;
-  const isPoster = !m.bg;
+  const src = m.bg;
 
   if (bgCur !== src){
     bgCur = src;
     const net = bgBack;
-    net.className = isPoster ? 'blurred' : '';
+    net.className = '';
+    const fallback = function(){
+      net.onload = net.onerror = null;
+      if (bgCur !== src) return;
+      // 剧照挂了就先糊一张海报顶住，总比黑屏强
+      const poster = new Image();
+      poster.onload = function(){
+        if (bgCur !== src) return;
+        net.className = 'blurred';
+        net.classList.add('on');
+        const old = bgFront;
+        bgFront = net; bgBack = old;
+        setTimeout(function(){ if (old !== bgFront) old.classList.remove('on'); }, 660);
+      };
+      poster.src = m.cover;
+    };
     net.onload = function(){
-      net.onload = null;
+      net.onload = net.onerror = null;
       if (bgCur !== src) return;
       net.classList.add('on');
       const old = bgFront;
       bgFront = net; bgBack = old;
       setTimeout(function(){ if (old !== bgFront) old.classList.remove('on'); }, 660);
     };
+    net.onerror = fallback;
     net.src = src;
+    if (net.complete && !net.naturalWidth) fallback();
   }
 
   if (posterImg.getAttribute('data-src') !== m.cover){

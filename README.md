@@ -41,7 +41,7 @@ links.json             # b23.tv 短链 → bangumi 播放页的映射
 - **全部看完**：弹「这一单吃完了」，33 格金色方块，可「重新来一轮」。
 - **键盘**：`空格` 换一部，`回车` 就去看。
 - **触屏**：左右滑动换一部。
-- **背景**：有横版图用横版图，没有就用海报模糊放大铺底。
+- **背景**：每部电影配一张自己的 16:10 横版剧照（`episodes[].cover`），模糊 20px 铺底、压暗 62%，跟着当前这部电影走。
 
 ## 手机 app（Android + iOS）
 
@@ -51,17 +51,20 @@ links.json             # b23.tv 短链 → bangumi 播放页的映射
 ```sh
 cd nsh
 nsh test                                     # headless 测试
-./package-android.sh                         # .nsh/out/看啥.apk（21 MB）
-./package-android.sh --trim                  # 同上，再现场编译裁剪版运行时（13 MB）
+./package-android.sh                         # .nsh/out/看啥.apk（22 MB）
+./package-android.sh --trim                  # 同上，再现场编译裁剪版运行时（14 MB）
 nsh package App.tsx --target android --run   # 装到已连接的设备/启动，不裁剪（81 MB）
 ./package-ios.sh                             # dist/kansha.ipa（未签名）
 ```
 
-`package-android.sh` 把默认的 81 MB 压到 21 MB：只打 `arm64-v8a`（现代设备都是 arm64），
+`package-android.sh` 把默认的 81 MB 压到 22 MB：只打 `arm64-v8a`（现代设备都是 arm64），
 再把 `libnsh.so` 用 deflate 压进 APK，并把 manifest 的 `extractNativeLibs` 改成 `true`
 让系统解压一次。冷启动时间和未压缩版持平。
 
-`--trim` 再省 8 MB，到 13 MB：按 app 实际 import 的模块现场编译一个只含 JS 引擎的
+界面对齐 Figma：手机竖屏是竖版稿（海报居中、信息在下、胶囊按钮贴底）；平板、桌面和
+手机横屏改走宽卡片（海报在左、文字在右），竖版在横屏里会把海报压成一条。
+
+`--trim` 再省 8 MB，到 14 MB：按 app 实际 import 的模块现场编译一个只含 JS 引擎的
 运行时（[NSH #1878](https://github.com/longbridge/nsh/issues/1878) / #2060），
 把 `shader`、`editor`、`highlight`、`math`、`plot`、`term`、`emoji-picker`、`svg`、
 `zlib`、`crypto`、`websocket`、`updater` 全部排除。需要 cargo、Rust 的
@@ -121,7 +124,7 @@ git push origin v1.0.2
 | 平台 | job | 产物 |
 |---|---|---|
 | Android | `android`（ubuntu） | `kansha-<版本>-arm64.apk`，12.9 MiB |
-| iOS | `ios`（macOS） | `kansha-<版本>.ipa`，21 MB，iPhone + iPad |
+| iOS | `ios`（macOS） | `kansha-<版本>.ipa`，22 MB，iPhone + iPad |
 
 - **版本号**取自 tag（`v1.0.2` → `versionName=1.0.2`），`versionCode`/`build` 用
   `github.run_number` 递增 —— 手机靠它判断能不能覆盖安装，所以必须每次都涨。
@@ -152,16 +155,15 @@ Secrets，workflow 会自动切到正式签名：
 三个缺任何一个就走未签名，不会失败。
 
 一个 ipa 同时覆盖 iPhone 和 iPad（`UIDeviceFamily: [1, 2]`），最低 iOS 15。
-CI 会把它装进 iPhone 和 iPad 两个模拟器各截一张图，作为 `ios-shots` artifact ——
-这是唯一能验证 iPad 布局（`platform.idiom === "pad"` 分支）的办法。
+CI 会把它装进 iPhone 和 iPad 两个模拟器各截一张图，作为 `ios-shots` artifact。
+两种布局都有 headless 测试兜着（`nsh test` 里 390×844、375×667、1024×1366、914×411 四档），
+截图只是让人眼再看一遍真机效果。
 
-### 为什么 CI 能出 13 MB
-
-### 为什么 CI 能出 13 MB
+### 为什么 CI 能出 14 MB
 
 `nsh/runtime/` 存了一份 cargo 工作区（nsh 生成的 crate 骨架，pin `=0.5.0` 的 crate）。
 0.5.1 自己不会写这个目录，脚本用这份骨架现场交叉编译一个只含 JS 引擎的运行时，
-替换掉预编译的 `libnsh.so`（47 MB → 27 MB，deflate 后 13 MB）。
+替换掉预编译的 `libnsh.so`（47 MB → 27 MB，deflate 后 14 MB）。
 
 > **必须用正式版 NSH。** nightly 的 `classes.dex` 已经用新协议，而 crates.io 上的 crate
 > 还是旧的，编出来的 `.so` 串不上，装上去一启动就
